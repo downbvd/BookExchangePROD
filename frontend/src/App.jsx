@@ -822,6 +822,35 @@ function AdminPanel() {
     }
   }
 
+  const banUser = async (userId) => {
+    if (!confirm('Are you sure you want to ban this user?')) return
+    try {
+      const res = await fetch(`${API_BASE}/admin/users/${userId}/ban`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        fetchData()
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const unbanUser = async (userId) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/users/${userId}/unban`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        fetchData()
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   if (loading) return <div className="loading" style={{ paddingTop: '6rem' }}><div className="spinner"></div></div>
 
   return (
@@ -952,6 +981,7 @@ function AdminPanel() {
                       <th>Username</th>
                       <th>Email</th>
                       <th>Role</th>
+                      <th>Status</th>
                       <th>City</th>
                       <th>Books</th>
                       <th>Joined</th>
@@ -965,11 +995,21 @@ function AdminPanel() {
                         <td>{user.username}</td>
                         <td>{user.email}</td>
                         <td><span className="badge badge-primary">{user.role}</span></td>
+                        <td>{user.banned ? <span className="badge badge-warning">Banned</span> : <span className="badge badge-success">Active</span>}</td>
                         <td>{user.city || '-'}</td>
                         <td>{user.books_count}</td>
                         <td>{new Date(user.created_at).toLocaleDateString()}</td>
                         <td>
-                          <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem' }} onClick={() => deleteUser(user.id)}>Delete</button>
+                          {user.role !== 'admin' && (
+                            <>
+                              {user.banned ? (
+                                <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', marginRight: '0.3rem' }} onClick={() => unbanUser(user.id)}>Unban</button>
+                              ) : (
+                                <button className="btn btn-warning" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', marginRight: '0.3rem' }} onClick={() => banUser(user.id)}>Ban</button>
+                              )}
+                              <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem' }} onClick={() => deleteUser(user.id)}>Delete</button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1018,6 +1058,8 @@ function ApiDocs() {
     { method: 'DELETE', path: '/api/admin/users/{id}', desc: 'Delete a user (admin only)' },
     { method: 'GET', path: '/api/admin/all-books', desc: 'Get all books (admin only)' },
     { method: 'DELETE', path: '/api/admin/books/{id}', desc: 'Delete a book (admin only)' },
+    { method: 'PUT', path: '/api/admin/users/{id}/ban', desc: 'Ban a user (admin only)' },
+    { method: 'PUT', path: '/api/admin/users/{id}/unban', desc: 'Unban a user (admin only)' },
   ]
 
   return (

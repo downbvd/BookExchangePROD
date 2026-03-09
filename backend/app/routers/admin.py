@@ -115,7 +115,7 @@ def get_all_users(current_user = Depends(get_current_user)):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT u.id, u.username, u.email, u.role, u.city, u.created_at,
+        SELECT u.id, u.username, u.email, u.role, u.city, u.banned, u.created_at,
                COUNT(b.id) as books_count
         FROM users u
         LEFT JOIN books b ON u.id = b.donor_id
@@ -134,6 +134,7 @@ def get_all_users(current_user = Depends(get_current_user)):
             "email": decrypt_data(u["email"]),
             "role": u["role"],
             "city": u["city"],
+            "banned": bool(u["banned"]),
             "books_count": u["books_count"],
             "created_at": u["created_at"]
         }
@@ -153,6 +154,7 @@ def delete_user(user_id: int, current_user = Depends(get_current_user)):
     
     cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
     if not cursor.fetchone():
+        conn.close()
         raise HTTPException(status_code=404, detail="User not found")
     
     cursor.execute("DELETE FROM reviews WHERE user_id = ?", (user_id,))
@@ -171,6 +173,49 @@ def delete_user(user_id: int, current_user = Depends(get_current_user)):
     conn.close()
     
     return {"message": "User deleted successfully"}
+
+@router.put("/users/{user_id}/ban")
+def ban_user(user_id: int, current_user = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    if user_id == current_user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot ban yourself")
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT id, banned FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    cursor.execute("UPDATE users SET banned = 1 WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    
+    return {"message": "User banned successfully"}
+
+@router.put("/users/{user_id}/unban")
+def unban_user(user_id: int, current_user = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT id, banned FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    cursor.execute("UPDATE users SET banned = 0 WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    
+    return {"message": "User unbanned successfully"}
 
 @router.get("/all-books")
 def get_all_books_admin(current_user = Depends(get_current_user)):

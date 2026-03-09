@@ -20,6 +20,7 @@ def init_db():
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL CHECK(role IN ('donor', 'reader', 'admin')),
             city TEXT,
+            banned INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -103,6 +104,15 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_location ON books(location_city)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_status ON books(status)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_reviews_book ON reviews(book_id)")
+    
+    cursor.execute("SELECT id FROM users WHERE username = 'admin'")
+    if not cursor.fetchone():
+        import bcrypt
+        admin_password = bcrypt.hashpw("admin".encode(), bcrypt.gensalt()).decode()
+        cursor.execute("""
+            INSERT INTO users (username, email, password_hash, role, city)
+            VALUES (?, ?, ?, ?, ?)
+        """, ("admin", "admin@bookexchange.local", admin_password, "admin", ""))
     
     conn.commit()
     conn.close()

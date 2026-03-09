@@ -111,6 +111,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user or not bcrypt.checkpw(form_data.password.encode(), user["password_hash"].encode()):
         raise HTTPException(status_code=401, detail="Incorrect username or password")
     
+    if user["banned"]:
+        raise HTTPException(status_code=403, detail="Your account has been banned")
+    
     access_token = create_access_token(data={"sub": str(user["id"])})
     
     return {

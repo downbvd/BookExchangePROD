@@ -151,6 +151,16 @@ a:hover {
   background: linear-gradient(180deg, #333333 0%, #000000 100%);
 }
 
+.btn-warning {
+  background: linear-gradient(180deg, #666666 0%, #444444 100%);
+  color: white;
+  border: 1px solid #333333;
+}
+
+.btn-warning:hover {
+  background: linear-gradient(180deg, #555555 0%, #333333 100%);
+}
+
 .input, .select {
   width: 100%;
   padding: 0.7rem 0.9rem;
